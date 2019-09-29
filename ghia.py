@@ -11,13 +11,28 @@ class GhiaError(Exception):
     pass
 
 class Issue:
-    def __init__(self, number, url, title, body, labels, assignees):
+    def __init__(self, number, url, html_url, title, body, labels, assignees):
         self.number = number
         self.url = url
+        self.html_url = html_url
         self.title = title
         self.body = body
         self.labels = labels
-        self.assignees = assignees
+        self.assignees = set(assignees)
+        self.update_labels = False
+        self.update_assignees = False
+
+    def add_assignees(self, assignees):
+        for a in assignees:
+            self.assignees.add(a)
+
+    def serialize(self):
+        output = dict()
+        if self.update_labels:
+            output.update({"labels": self.labels})
+        if self.update_assignees:
+            output.update({"assignees": list(self.assignees)})
+        return output
 
 def validate_reposlug(ctx, param, reposlug):
     if re.match("[\\w-]+\\/[\\w-]+", reposlug):
@@ -62,15 +77,107 @@ def validate_rules(ctx, param, config_rules):
             for line in value.split("\n"):
                 rule = line.split(":")
                 if len(rule) > 1:
-                    rules[key][rule[0]].append(re.compile(":".join(rule[1:])))
+                    rules[key][rule[0]].append(re.compile(".*" + ":".join(rule[1:]) + ".*", re.IGNORECASE))
 
         return rules
 
     except KeyError:
         raise click.BadParameter("incorrect configuration format")
 
-def process_issue(issue, reposlug, strategy, rules, dry_run):
-    pass
+def match_rule(issue, rule):
+    for regex in rule["title"]:
+        if regex.match(issue.title):
+            return True
+    for regex in rule["text"]:
+        if regex.match(issue.body):
+            return True
+    for regex in rule["label"]:
+        for label in issue.labels:
+            if regex.match(label):
+                return True
+    for regex in rule["any"]:
+        if regex.match(issue.title) or regex.match(issue.body):
+            return True
+        for label in issue.labels:
+            if regex.match(label):
+                return True
+    return False
+
+def process_issue(issue, reposlug, strategy, rules, dry_run, session):
+    echo_name = click.style(f"{reposlug}#{issue.number}", bold=True)
+    click.echo(f"-> {echo_name} ({issue.html_url})")
+    try:
+        users = list()
+        echoes = list()
+
+        # Find users
+        without_fallback = {login: rules[login] for login in rules if login != "fallback"}
+        for login, rule in without_fallback.items():
+            if match_rule(issue, rule):
+                issue.update_assignees = True
+                users.append(login)
+
+        # Perform changes
+        if strategy == "append":
+            old_assignees = list(issue.assignees)
+            issue.add_assignees(users)
+            for user in sorted(issue.assignees, key=lambda s: s.casefold()):
+                if user in old_assignees:
+                    symbol = click.style("=", fg="blue", bold=True)
+                else:
+                    symbol = click.style("+", fg="green", bold=True)
+                echoes.append(f"   {symbol} {user}")
+        elif strategy == "set":
+            if len(issue.assignees) == 0:
+                issue.add_assignees(users)
+                for user in sorted(issue.assignees, key=lambda s: s.casefold()):
+                    symbol = click.style("+", fg="green", bold=True)
+                    echoes.append(f"   {symbol} {user}")
+            else:
+                for user in sorted(issue.assignees, key=lambda s: s.casefold()):
+                    symbol = click.style("=", fg="blue", bold=True)
+                    echoes.append(f"   {symbol} {user}")
+        else:
+            all_assignees = set(issue.assignees)
+            for user in users:
+                all_assignees.add(user)
+            for user in sorted(all_assignees, key=lambda s: s.casefold()):
+                if user in users:
+                    if user in issue.assignees:
+                        symbol = click.style("=", fg="green", bold=True)
+                    else:
+                        symbol = click.style("+", fg="green", bold=True)
+                        issue.update_assignees = True
+                else:
+                    symbol = click.style("-", fg="red", bold=True)
+                    issue.update_assignees = True
+                echoes.append(f"   {symbol} {user}")
+            issue.assignees = set(users)
+
+        # Perform fallback if necessary
+        if len(issue.assignees) == 0:
+            try:
+                label = rules["fallback"]
+                fallback = click.style(f"FALLBACK", fg="yellow", bold=True)
+                if label in issue.labels:
+                    echoes.append(f"   {fallback}: already has label \"{label}\"")
+                else:
+                    issue.update_labels = True
+                    issue.labels.append(label)
+                    echoes.append(f"   {fallback}: added label \"{label}\"")
+            except KeyError:
+                pass
+
+        # Update issues on GitHub
+        if (not dry_run) and (issue.update_labels or issue.update_assignees):
+            response = session.patch(issue.url, json=issue.serialize())
+            response.raise_for_status()
+
+        for echo in echoes:
+            click.echo(echo)
+
+    except requests.HTTPError:
+        raise GhiaError(f"Could not update issue {reposlug}#{issue.number}")
 
 def process_repository(reposlug, strategy, token, rules, dry_run):
     # Prepare session
@@ -89,18 +196,19 @@ def process_repository(reposlug, strategy, token, rules, dry_run):
             for i in response.json():
                 number = i["number"]
                 url = i["url"]
+                html_url = i["html_url"]
                 title = i["title"]
                 body = i["body"]
                 labels = [x["name"] for x in i["labels"]]
                 assignees = [x["login"] for x in i["assignees"]]
-                issue = Issue(number, url, title, body, labels, assignees)
+                issue = Issue(number, url, html_url, title, body, labels, assignees)
 
                 # Process the issue
                 try:
-                    process_issue(issue, reposlug, strategy, rules, dry_run)
+                    process_issue(issue, reposlug, strategy, rules, dry_run, session)
                 except GhiaError as e:
                     error = click.style("ERROR", fg="red", bold=True)
-                    click.echo(f"{error}: {e}")
+                    click.echo(f"   {error}: {e}", err=True)
 
             # Go to the next page
             try:
@@ -122,7 +230,7 @@ def main(reposlug, strategy, config_auth, config_rules, dry_run):
         process_repository(reposlug, strategy, config_auth, config_rules, dry_run)
     except GhiaError as e:
         error = click.style("ERROR", fg="red", bold=True)
-        click.echo(f"{error}: {e}")
+        click.echo(f"{error}: {e}", err=True)
         sys.exit(10)
 
 if __name__ == "__main__":
