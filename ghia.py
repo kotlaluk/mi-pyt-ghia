@@ -119,7 +119,7 @@ def process_issue(issue, reposlug, strategy, rules, dry_run, session):
 
         # Perform changes
         if strategy == "append":
-            old_assignees = list(issue.assignees)
+            old_assignees = set(issue.assignees)
             issue.add_assignees(users)
             for user in sorted(issue.assignees, key=lambda s: s.casefold()):
                 if user in old_assignees:
@@ -173,6 +173,7 @@ def process_issue(issue, reposlug, strategy, rules, dry_run, session):
             response = session.patch(issue.url, json=issue.serialize())
             response.raise_for_status()
 
+        # Echo output
         for echo in echoes:
             click.echo(echo)
 
