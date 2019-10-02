@@ -29,9 +29,9 @@ class Issue:
     def serialize(self):
         output = dict()
         if self.update_labels:
-            output.update({"labels": self.labels})
+            output["labels"] = self.labels
         if self.update_assignees:
-            output.update({"assignees": list(self.assignees)})
+            output["assignees"] = list(self.assignees)
         return output
 
 def validate_reposlug(ctx, param, reposlug):
@@ -44,8 +44,6 @@ def validate_auth(ctx, param, config_auth):
     try:
         auth_parser = configparser.ConfigParser()
         auth_parser.read(config_auth)
-        if "token" not in auth_parser["github"]:
-            raise click.BadParameter("incorrect configuration format")
         return auth_parser["github"]["token"]
     except KeyError:
         raise click.BadParameter("incorrect configuration format")
@@ -60,12 +58,8 @@ def validate_rules(ctx, param, config_rules):
         rules = dict()
 
         # Handle fallback
-        try:
-            fallback = rules_parser["fallback"]["label"]
-            if fallback is not None:
-                rules.update({"fallback":fallback})
-        except KeyError:
-            pass
+        if rules_parser.has_option("fallback", "label"):
+            rules["fallback"] = rules_parser["fallback"]["label"]
 
         # Handle patterns
         for key, value in rules_parser["patterns"].items():
@@ -75,9 +69,9 @@ def validate_rules(ctx, param, config_rules):
             rules[key]["text"] = list()
             rules[key]["label"] = list()
             for line in value.split("\n"):
-                rule = line.split(":")
-                if len(rule) > 1:
-                    rules[key][rule[0]].append(re.compile(".*" + ":".join(rule[1:]) + ".*", re.IGNORECASE))
+                rule = line.split(":", 1)
+                if len(rule) == 2:
+                    rules[key][rule[0]].append(re.compile(rule[1], re.IGNORECASE))
 
         return rules
 
@@ -86,73 +80,68 @@ def validate_rules(ctx, param, config_rules):
 
 def match_rule(issue, rule):
     for regex in rule["title"]:
-        if regex.match(issue.title):
+        if regex.search(issue.title):
             return True
     for regex in rule["text"]:
-        if regex.match(issue.body):
+        if regex.search(issue.body):
             return True
     for regex in rule["label"]:
         for label in issue.labels:
-            if regex.match(label):
+            if regex.search(label):
                 return True
     for regex in rule["any"]:
-        if regex.match(issue.title) or regex.match(issue.body):
+        if regex.search(issue.title) or regex.search(issue.body):
             return True
         for label in issue.labels:
-            if regex.match(label):
+            if regex.search(label):
                 return True
     return False
+
+def apply_strategy(strategy, issue, users):
+
+    # Perform changes
+    old_assignees = set(issue.assignees)
+    if strategy == "append":
+        issue.add_assignees(users)
+    elif strategy == "set":
+        if len(issue.assignees) == 0:
+            issue.add_assignees(users)
+    else:
+        issue.update_assignees = True
+        issue.assignees = set(users)
+    new_assignees = issue.assignees
+    all_assignees = old_assignees.union(new_assignees)
+
+    # Prepare output
+    echoes = list()
+    for user in sorted(all_assignees, key=lambda s: s.casefold()):
+        if user in new_assignees:
+            if user in old_assignees:
+                symbol = click.style("=", fg="green", bold=True)
+            else:
+                symbol = click.style("+", fg="green", bold=True)
+        else:
+            symbol = click.style("-", fg="red", bold=True)
+        echoes.append(f"   {symbol} {user}")
+
+    return echoes
 
 def process_issue(issue, reposlug, strategy, rules, dry_run, session):
     echo_name = click.style(f"{reposlug}#{issue.number}", bold=True)
     click.echo(f"-> {echo_name} ({issue.html_url})")
     try:
         users = list()
-        echoes = list()
 
-        # Find users
-        without_fallback = {login: rules[login] for login in rules if login != "fallback"}
+        # Find users matching rules
+        without_fallback = {login: rules[login] \
+            for login in rules if login != "fallback"}
         for login, rule in without_fallback.items():
             if match_rule(issue, rule):
                 issue.update_assignees = True
                 users.append(login)
 
         # Perform changes
-        if strategy == "append":
-            old_assignees = set(issue.assignees)
-            issue.add_assignees(users)
-            for user in sorted(issue.assignees, key=lambda s: s.casefold()):
-                if user in old_assignees:
-                    symbol = click.style("=", fg="blue", bold=True)
-                else:
-                    symbol = click.style("+", fg="green", bold=True)
-                echoes.append(f"   {symbol} {user}")
-        elif strategy == "set":
-            if len(issue.assignees) == 0:
-                issue.add_assignees(users)
-                for user in sorted(issue.assignees, key=lambda s: s.casefold()):
-                    symbol = click.style("+", fg="green", bold=True)
-                    echoes.append(f"   {symbol} {user}")
-            else:
-                for user in sorted(issue.assignees, key=lambda s: s.casefold()):
-                    symbol = click.style("=", fg="blue", bold=True)
-                    echoes.append(f"   {symbol} {user}")
-        else:
-            all_assignees = set(issue.assignees)
-            for user in users:
-                all_assignees.add(user)
-            for user in sorted(all_assignees, key=lambda s: s.casefold()):
-                if user in users:
-                    if user in issue.assignees:
-                        symbol = click.style("=", fg="green", bold=True)
-                    else:
-                        symbol = click.style("+", fg="green", bold=True)
-                        issue.update_assignees = True
-                else:
-                    symbol = click.style("-", fg="red", bold=True)
-                    issue.update_assignees = True
-                echoes.append(f"   {symbol} {user}")
-            issue.assignees = set(users)
+        echoes = apply_strategy(strategy, issue, users)
 
         # Perform fallback if necessary
         if len(issue.assignees) == 0:
@@ -220,11 +209,18 @@ def process_repository(reposlug, strategy, token, rules, dry_run):
         raise GhiaError(f"Could not list issues for repository {reposlug}")
 
 @click.command()
-@click.argument("reposlug", metavar="REPOSLUG", required=True, callback=validate_reposlug)
-@click.option("-s", "--strategy", help="How to handle assignment collisions.", type=click.Choice(["append", "set", "change"], case_sensitive=False), default="append", show_default=True)
+@click.argument("reposlug", metavar="REPOSLUG", required=True, 
+    callback=validate_reposlug)
+@click.option("-s", "--strategy", help="How to handle assignment collisions.", 
+    type=click.Choice(["append", "set", "change"], case_sensitive=False), 
+    default="append", show_default=True)
 @click.option("-d", "--dry-run", help="Run without making any changes.", is_flag=True)
-@click.option("-a", "--config-auth", help="File with authorization configuration.", metavar="FILENAME", required=True, callback=validate_auth)
-@click.option("-r", "--config-rules", help="File with assignment rules configuration.", metavar="FILENAME", required=True, callback=validate_rules)
+@click.option("-a", "--config-auth", help="File with authorization configuration.", 
+    metavar="FILENAME", required=True, type=click.Path(exists=True), 
+    callback=validate_auth)
+@click.option("-r", "--config-rules", help="File with assignment rules configuration.", 
+    metavar="FILENAME", required=True, type=click.Path(exists=True), 
+    callback=validate_rules)
 def main(reposlug, strategy, config_auth, config_rules, dry_run):
     """ CLI tool for automatic issue assigning of GitHub issues"""
     try:
@@ -236,3 +232,4 @@ def main(reposlug, strategy, config_auth, config_rules, dry_run):
 
 if __name__ == "__main__":
     main()
+    
