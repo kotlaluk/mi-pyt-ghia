@@ -3,25 +3,29 @@
 {% block body %}
     <h1 align=center>GHIA</h1>
 
-    <h4 align=center>User: {{user}}</h4>
+    <h2>User</h2>  
+    <span class="label label-user">{{user}}</span>
 
-    <h3 align=center>Active rules</h3>
+    <h2>Active rules</h2>
 
-    <ul>
     {% for login in rules %}
-        <li>{{login}}</li>
+        <span class="label">{{login}}</span>
         <ul>
             {% for rule in rules[login] %}
-            <li>{{rule}}</li>
-            <ul>
-                {% for line in rules[login][rule] %}
-                <li>{{line}}</li>
-                {% endfor %}
-            </ul>
+                {% if rules[login][rule] %}
+                <span class="rule">{{rule}} &rarr; </span>
+                    {% for line in rules[login][rule] %}
+                        <span class="pattern">"{{line.pattern}}"</span>
+                    {% endfor %}
+                {% endif %}
             {% endfor %}
         </ul>
     {% endfor %}
+    
+    {% if fallback %}
+    <h2>Fallback</h2>
+    <ul>
+        <spanc class="label label-fallback">{{fallback}}</span>
     </ul>
-
-    <h4 align=center>Fallback: {{fallback}}</h4>
+    {% endif %}
 {% endblock %}}

@@ -1,4 +1,36 @@
 h1 {
     color: red;
-    font-variant: large-caps;
 }
+
+h2 {
+    color: black;
+    font-variant: small-caps;
+}
+
+.pattern {
+    font-family: monospace;
+    color: green; 
+}
+
+.rule {
+    font-weight: bold;
+}
+
+.label {
+    font-size: 0.8125em;
+    color: white;
+    background-color: blue;
+    font-weight: bold;
+    padding: 0.25em 0.5em;
+    border-radius: 0.0725em;
+  }
+
+ .label-fallback {
+    color: black;
+    background-color: yellow;
+ }
+
+ .label-user {
+    color: black;
+    background-color: darkorange;
+ }
