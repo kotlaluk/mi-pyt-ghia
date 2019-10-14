@@ -7,21 +7,24 @@ import os
 import json
 import flask
 import jinja2 
+import hmac
 
 GITHUB_URL = "https://api.github.com/repos/"
+WEB_REPOSLUG = "mi-pyt-ghia/kotlaluk-web"
 
 app = flask.Flask(__name__)
 
 def read_config():
     config = dict()
+    config["rules"] = dict()
+    config["auth"] = dict()
     try:
-        config["user"] = os.environ["GITHUB_USER"]
+        config["auth"]["user"] = os.environ["GITHUB_USER"]
     except KeyError:
         raise GhiaError("No GitHub user specified")
     try:
         config_files = os.environ["GHIA_CONFIG"].split(":")
-        config["rules"] = dict()
-        config["tokens"] = list()
+        
         for file in config_files:
             errors = 0
             try:
@@ -31,31 +34,68 @@ def read_config():
             except click.BadParameter:
                 errors += 1
             try:
-                a = ""
+                a = dict()
                 a = validate_auth(None, None, file)
-                if len(a) > 0:
-                    config["tokens"].append(a)
+                config["auth"].update(a)
             except click.BadParameter:
                 errors +=1
             if errors == 2:
                 raise GhiaError(f"Invalid format of configuration file {file}")
     except KeyError:
         raise GhiaError("No configuration files found")
-    app.logger.info(f"User: {config['user']}")
-    app.logger.info(f"Rules: {config['rules']}")
     return config
 
-@app.route("/")
+def validate_signature(secret, header_signature, data):
+    digest_mode, signature = header_signature.split("=")
+    mac = hmac.new(bytes(secret, "ascii"), msg=data, digestmod=digest_mode)
+    return hmac.compare_digest(signature, mac.hexdigest())
+
+@app.route("/", methods=["GET", "POST"])
 def index():
     config = read_config()
-    without_fallback = {login: config["rules"][login] \
-            for login in config["rules"] if login != "fallback"}
-    try:
-        fallback = config["rules"]["fallback"]
-    except KeyError:
-        fallback = None
-    return flask.render_template("index.html", user=config["user"], \
+    if flask.request.method == "GET":
+        without_fallback = {login: config["rules"][login] \
+                for login in config["rules"] if login != "fallback"}
+        try:
+            fallback = config["rules"]["fallback"]
+        except KeyError:
+            fallback = None
+        return flask.render_template("index.html", user=config["auth"]["user"], \
         rules=without_fallback, fallback=fallback)
+    if flask.request.method == "POST":
+        try:
+            signature = flask.request.headers["X-Hub-Signature"]
+            if not validate_signature(str(config["auth"]["secret"]), signature, flask.request.data):
+                flask.abort(401)
+        except KeyError:
+            pass
+        try:
+            event = flask.request.headers["X-GitHub-Event"]
+            if event == "ping":
+                return "Ping successful"
+            elif event =="issues":
+                if flask.request.json["action"] in ("opened", "edited", "transferred", \
+                    "reopened", "assigned", "unassigned", "labeled", "unlabeled"):
+                    payload = flask.request.json["isssue"]
+                    number = payload["number"]
+                    url = payload["url"]
+                    html_url = payload["html_url"]
+                    title = payload["title"]
+                    body = payload["body"]
+                    labels = [x["name"] for x in payload["labels"]]
+                    assignees = [x["login"] for x in payload["assignees"]]
+                    issue = Issue(number, url, html_url, title, body, labels, assignees)
+                    session = requests.Session()
+                    session.headers["Authorization"] = f"token {config['auth']['token']}"
+                    session.headers["Accept"] = "application/vnd.github.v3+json"
+                    process_issue(issue, WEB_REPOSLUG, "append", config["rules"], False, session, print_output=False)
+                    return "The issue was successfully updated."
+                else:
+                    flask.abort(501)
+            else:
+                flask.abort(501)
+        except KeyError:
+            flask.abort(400)
 
 class GhiaError(Exception):
     pass
@@ -94,7 +134,9 @@ def validate_auth(ctx, param, config_auth):
     try:
         auth_parser = configparser.ConfigParser()
         auth_parser.read(config_auth)
-        return auth_parser["github"]["token"]
+        if "token" not in auth_parser["github"]:
+            raise KeyError
+        return auth_parser["github"]
     except KeyError:
         raise click.BadParameter("incorrect configuration format")
 
@@ -176,9 +218,10 @@ def apply_strategy(strategy, issue, users):
 
     return echoes
 
-def process_issue(issue, reposlug, strategy, rules, dry_run, session):
-    echo_name = click.style(f"{reposlug}#{issue.number}", bold=True)
-    click.echo(f"-> {echo_name} ({issue.html_url})")
+def process_issue(issue, reposlug, strategy, rules, dry_run, session, print_output=True):
+    if print_output:
+        echo_name = click.style(f"{reposlug}#{issue.number}", bold=True)
+        click.echo(f"-> {echo_name} ({issue.html_url})")
     try:
         users = list()
 
@@ -213,8 +256,9 @@ def process_issue(issue, reposlug, strategy, rules, dry_run, session):
             response.raise_for_status()
 
         # Echo output
-        for echo in echoes:
-            click.echo(echo)
+        if print_output:
+            for echo in echoes:
+                click.echo(echo)
 
     except requests.HTTPError:
         raise GhiaError(f"Could not update issue {reposlug}#{issue.number}")
@@ -274,7 +318,8 @@ def process_repository(reposlug, strategy, token, rules, dry_run):
 def main(reposlug, strategy, config_auth, config_rules, dry_run):
     """ CLI tool for automatic issue assigning of GitHub issues"""
     try:
-        process_repository(reposlug, strategy, config_auth, config_rules, dry_run)
+        token = config_auth["token"]
+        process_repository(reposlug, strategy, token, config_rules, dry_run)
     except GhiaError as e:
         error = click.style("ERROR", fg="red", bold=True)
         click.echo(f"{error}: {e}", err=True)
