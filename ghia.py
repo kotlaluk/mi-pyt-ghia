@@ -89,7 +89,7 @@ def index():
                 if flask.request.json["action"] in ("opened", "edited", "transferred", \
                     "reopened", "assigned", "unassigned", "labeled", "unlabeled"):
                     app.logger.info("Received ISSUES event")
-                    payload = flask.request.json["isssue"]
+                    payload = flask.request.json["issue"]
                     issue = create_issue(payload)
 
                     session = requests.Session()
