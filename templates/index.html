@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block body %}
+    <h1 align=center>GHIA</h1>
+
+    <h4 align=center>User: {{user}}</h4>
+
+    <h3 align=center>Active rules</h3>
+
+    <ul>
+    {% for login in rules %}
+        <li>{{login}}</li>
+        <ul>
+            {% for rule in rules[login] %}
+            <li>{{rule}}</li>
+            <ul>
+                {% for line in rules[login][rule] %}
+                <li>{{line}}</li>
+                {% endfor %}
+            </ul>
+            {% endfor %}
+        </ul>
+    {% endfor %}
+    </ul>
+
+    <h4 align=center>Fallback: {{fallback}}</h4>
+{% endblock %}}

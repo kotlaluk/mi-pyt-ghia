@@ -3,9 +3,59 @@ import requests
 import configparser
 import re
 import sys
+import os
 import json
+import flask
+import jinja2 
 
 GITHUB_URL = "https://api.github.com/repos/"
+
+app = flask.Flask(__name__)
+
+def read_config():
+    config = dict()
+    try:
+        config["user"] = os.environ["GITHUB_USER"]
+    except KeyError:
+        raise GhiaError("No GitHub user specified")
+    try:
+        config_files = os.environ["GHIA_CONFIG"].split(":")
+        config["rules"] = dict()
+        config["tokens"] = list()
+        for file in config_files:
+            errors = 0
+            try:
+                r = dict()
+                r = validate_rules(None, None, file)
+                config["rules"].update(r)
+            except click.BadParameter:
+                errors += 1
+            try:
+                a = ""
+                a = validate_auth(None, None, file)
+                if len(a) > 0:
+                    config["tokens"].append(a)
+            except click.BadParameter:
+                errors +=1
+            if errors == 2:
+                raise GhiaError(f"Invalid format of configuration file {file}")
+    except KeyError:
+        raise GhiaError("No configuration files found")
+    app.logger.info(f"User: {config['user']}")
+    app.logger.info(f"Rules: {config['rules']}")
+    return config
+
+@app.route("/")
+def index():
+    config = read_config()
+    without_fallback = {login: config["rules"][login] \
+            for login in config["rules"] if login != "fallback"}
+    try:
+        fallback = config["rules"]["fallback"]
+    except KeyError:
+        fallback = None
+    return flask.render_template("index.html", user=config["user"], \
+        rules=without_fallback, fallback=fallback)
 
 class GhiaError(Exception):
     pass
