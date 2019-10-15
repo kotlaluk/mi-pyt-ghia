@@ -18,11 +18,6 @@ def read_config():
 
     # Read environment variables
     try:
-        config["reposlug"] = os.environ["GHIA_REPOSLUG"]
-    except KeyError:
-        raise GhiaError("No GitHub repository specified")
-    
-    try:
         config["auth"]["user"] = os.environ["GITHUB_USER"]
     except KeyError:
         raise GhiaError("No GitHub user specified")
@@ -90,12 +85,14 @@ def index():
                     "reopened", "assigned", "unassigned", "labeled", "unlabeled"):
                     app.logger.info("Received ISSUES event")
                     payload = flask.request.json["issue"]
+                    repo_url = payload["repository_url"].split("/")
+                    reposlug = f"{repo_url[-2]}/{repo_url[-1]}"
                     issue = create_issue(payload)
 
                     session = requests.Session()
                     session.headers["Authorization"] = f"token {config['auth']['token']}"
                     session.headers["Accept"] = "application/vnd.github.v3+json"
-                    process_issue(issue, config["reposlug"], "append", config["rules"], False, session, print_output=False)
+                    process_issue(issue, reposlug, "append", config["rules"], False, session, print_output=False)
                     app.logger.info("Issue sent successfully")
                     return f"Issue {issue.number} ({issue.title}) was successfully updated."
                 else:
