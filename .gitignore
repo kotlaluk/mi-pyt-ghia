@@ -2,3 +2,5 @@ __pycache__/
 auth.real.cfg
 credetntials.cfg
 *.egg-info/
+dist/
+build/
