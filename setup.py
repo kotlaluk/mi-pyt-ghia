@@ -5,7 +5,7 @@ with open('README.md') as f:
 
 setup(
     name='ghia_kotlaluk',
-    version='0.1',
+    version='0.3',
     description='GitHub Issue Assigner',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -19,6 +19,7 @@ setup(
         'Intended Audience :: Developers',
         'Environment :: Console',
         'Environment :: Web Environment',
+        'Framework :: Flask',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python',
