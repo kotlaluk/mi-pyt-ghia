@@ -5,13 +5,13 @@ with open('README.md') as f:
 
 setup(
     name='ghia_kotlaluk',
-    version='0.3',
+    version='0.3.1',
     description='GitHub Issue Assigner',
     long_description=long_description,
     long_description_content_type="text/markdown",
     author='Lukáš Kotlaba',
     author_email='lukas.kotlaba@gmail.com',
-    keywords='ghia,github',
+    keywords='ghia,github,issue,assigner',
     license='GNU GPLv3',
     url='https://github.com/kotlaluk/mi-pyt-ghia',
     packages=find_packages(),
