@@ -3,7 +3,7 @@ import configparser
 from click import BadParameter
 
 def validate_reposlug(ctx, param, reposlug):
-    if re.match("[\\w-]+\\/[\\w-]+", reposlug):
+    if re.match("^[\\w-]+\\/[\\w-]+$", reposlug):
         return reposlug
     else:
         raise BadParameter("not in owner/repository format")
@@ -28,8 +28,11 @@ def validate_rules(ctx, param, config_rules):
         rules = dict()
 
         # Handle fallback
-        if rules_parser.has_option("fallback", "label"):
-            rules["fallback"] = rules_parser["fallback"]["label"]
+        if rules_parser.has_section("fallback"):
+            if rules_parser.has_option("fallback", "label"):
+                rules["fallback"] = rules_parser["fallback"]["label"]
+            else:
+                raise KeyError
 
         # Handle patterns
         for key, value in rules_parser["patterns"].items():
@@ -45,5 +48,5 @@ def validate_rules(ctx, param, config_rules):
 
         return rules
 
-    except KeyError:
+    except (KeyError, re.error):
         raise BadParameter("incorrect configuration format")

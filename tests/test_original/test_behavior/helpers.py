@@ -31,7 +31,7 @@ def run_ok(*args, **kwargs):
 
 
 def config(name):
-    return pathlib.Path(__file__).parent / 'fixtures' / name
+    return pathlib.Path(__file__).parent.parent / 'fixtures' / name
 
 
 @contextlib.contextmanager
