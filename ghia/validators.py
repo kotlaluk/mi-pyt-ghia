@@ -59,6 +59,6 @@ def validate_rules(ctx, param, config_rules):
 
 def validate_signature(secret, data, header_signature):
     digest_mode, signature = header_signature.split("=")
-    mac = hmac.new(bytes(secret, "ascii"), msg=bytes(data, "ascii"),
+    mac = hmac.new(bytes(secret, "ascii"), msg=data,
                    digestmod=digest_mode)
     return hmac.compare_digest(signature, mac.hexdigest())

@@ -3,16 +3,14 @@ import re
 from pathlib import Path
 from click import BadParameter
 
+from unit_helpers import make_path
+
 from ghia.validators import validate_reposlug, validate_auth, validate_rules,\
                             validate_signature
 
 
 ctx = None
 param = None
-
-
-def config(name):
-    return Path(__file__).parent / "fixtures" / name
 
 
 def test_reposlug():
@@ -28,12 +26,12 @@ def test_invalid_reposlug(reposlug):
 
 
 def test_auth_basic():
-    auth = validate_auth(ctx, param, config("auth.basic.cfg"))
+    auth = validate_auth(ctx, param, make_path("auth.basic.cfg"))
     assert auth["token"] == "ffffffffffffffffffffffffffffffffffffffff"
 
 
 def test_auth_with_secret():
-    auth = validate_auth(ctx, param, config("auth.secret.cfg"))
+    auth = validate_auth(ctx, param, make_path("auth.secret.cfg"))
     assert auth["token"] == "ffffffffffffffffffffffffffffffffffffffff"
     assert auth["secret"] == "tajneheslo"
 
@@ -42,18 +40,18 @@ def test_auth_with_secret():
                                   "auth.no_token.cfg"))
 def test_invalid_auth(file):
     with pytest.raises(BadParameter) as e:
-        validate_auth(ctx, param, config(file))
+        validate_auth(ctx, param, make_path(file))
     assert str(e.value) == "incorrect configuration format"
 
 
 def test_rules_empty():
-    d = validate_rules(ctx, param, config("rules.empty.cfg"))
+    d = validate_rules(ctx, param, make_path("rules.empty.cfg"))
     assert type(d) == dict
     assert len(d) == 0
 
 
 def test_rules_valid():
-    d = validate_rules(ctx, param, config("rules.valid.cfg"))
+    d = validate_rules(ctx, param, make_path("rules.valid.cfg"))
     assert "fallback" in d.keys()
     assert "title" in d["ghia-anna"].keys()
     assert re.match(d["ghia-john"]["label"][0], "assign-john")
@@ -61,7 +59,7 @@ def test_rules_valid():
 
 
 def test_rules_with_fallback():
-    d = validate_rules(ctx, param, config("rules.fallback.cfg"))
+    d = validate_rules(ctx, param, make_path("rules.fallback.cfg"))
     assert d["fallback"] == "Need assignment"
     assert len(d) == 1
 
@@ -71,12 +69,12 @@ def test_rules_with_fallback():
                                   "rules.invalid_fallback.cfg"))
 def test_invalid_rules(file):
     with pytest.raises(BadParameter) as e:
-        validate_rules(ctx, param, config(file))
+        validate_rules(ctx, param, make_path(file))
     assert str(e.value) == "incorrect configuration format"
 
 
 def test_signature():
-    assert validate_signature("secret", "qwertyuiop",
+    assert validate_signature("secret", "qwertyuiop".encode("ascii"),
                               "sha1=6793e2cc70039317a633a5ce17038afc4cd5964d")
-    assert not validate_signature("secret", "qwertyuiop",
+    assert not validate_signature("secret", "qwertyuiop".encode("ascii"),
                                   "sha1=6793e2cc70039317a633a5ce17038afc4cd5964e")

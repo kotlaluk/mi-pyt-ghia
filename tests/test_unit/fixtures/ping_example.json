@@ -1,0 +1,27 @@
+{
+    "zen": "Keep it logically awesome.",
+    "hook_id": 123456,
+    "hook": {
+        "type": "Repository",
+        "id": 55866886,
+        "name": "web",
+        "active": true,
+        "events": [
+            "issues"
+        ],
+        "config": {
+            "content_type": "json",
+            "insecure_ssl": "0",
+            "secret": "********"
+        }
+    },
+    "repository": {
+        "id": 123456,
+        "name": "ghia",
+        "full_name": "cvut/ghia",
+        "private": false
+    },
+    "sender": {
+        "login": "user"
+    }
+}

@@ -1,8 +1,10 @@
 import click
 import requests
 
+
 class GhiaError(Exception):
     pass
+
 
 class Issue:
     def __init__(self, number, url, html_url, title, body, labels, assignees):
@@ -28,6 +30,14 @@ class Issue:
             output["assignees"] = list(self.assignees)
         return output
 
+
+def prepare_session(auth):
+    session = requests.Session()
+    session.headers["Authorization"] = f"token {auth}"
+    session.headers["Accept"] = "application/vnd.github.v3+json"
+    return session
+
+
 def match_rule(issue, rule):
     for regex in rule["title"]:
         if regex.search(issue.title):
@@ -46,6 +56,7 @@ def match_rule(issue, rule):
             if regex.search(label):
                 return True
     return False
+
 
 def apply_strategy(strategy, issue, users):
 
@@ -76,6 +87,7 @@ def apply_strategy(strategy, issue, users):
 
     return echoes
 
+
 def create_issue(payload):
     number = payload["number"]
     url = payload["url"]
@@ -86,47 +98,40 @@ def create_issue(payload):
     assignees = [x["login"] for x in payload["assignees"]]
     return Issue(number, url, html_url, title, body, labels, assignees)
 
-def process_issue(issue, reposlug, strategy, rules, dry_run, session, print_output=True):
-    if print_output:
-        echo_name = click.style(f"{reposlug}#{issue.number}", bold=True)
-        click.echo(f"-> {echo_name} ({issue.html_url})")
-    try:
-        users = list()
 
-        # Find users matching rules
-        without_fallback = {login: rules[login] \
-            for login in rules if login != "fallback"}
-        for login, rule in without_fallback.items():
-            if match_rule(issue, rule):
-                issue.update_assignees = True
-                users.append(login)
+def process_issue(issue, strategy, rules):
+    users = list()
 
-        # Perform changes
-        echoes = apply_strategy(strategy, issue, users)
+    # Find users matching rules
+    without_fallback = {login: rules[login]
+                        for login in rules
+                        if login != "fallback"}
+    for login, rule in without_fallback.items():
+        if match_rule(issue, rule):
+            issue.update_assignees = True
+            users.append(login)
 
-        # Perform fallback if necessary
-        if len(issue.assignees) == 0:
-            try:
-                label = rules["fallback"]
-                fallback = click.style(f"FALLBACK", fg="yellow", bold=True)
-                if label in issue.labels:
-                    echoes.append(f"   {fallback}: already has label \"{label}\"")
-                else:
-                    issue.update_labels = True
-                    issue.labels.append(label)
-                    echoes.append(f"   {fallback}: added label \"{label}\"")
-            except KeyError:
-                pass
+    # Perform changes
+    echoes = apply_strategy(strategy, issue, users)
 
-        # Update issues on GitHub
-        if (not dry_run) and (issue.update_labels or issue.update_assignees):
-            response = session.patch(issue.url, json=issue.serialize())
-            response.raise_for_status()
+    # Perform fallback if necessary
+    if len(issue.assignees) == 0:
+        try:
+            label = rules["fallback"]
+            fallback = click.style(f"FALLBACK", fg="yellow", bold=True)
+            if label in issue.labels:
+                echoes.append(f"   {fallback}: already has label \"{label}\"")
+            else:
+                issue.update_labels = True
+                issue.labels.append(label)
+                echoes.append(f"   {fallback}: added label \"{label}\"")
+        except KeyError:
+            pass
 
-        # Echo output
-        if print_output:
-            for echo in echoes:
-                click.echo(echo)
+    return echoes
 
-    except requests.HTTPError:
-        raise GhiaError(f"Could not update issue {reposlug}#{issue.number}")
+
+def update_github(issue, session):
+    if issue.update_labels or issue.update_assignees:
+        response = session.patch(issue.url, json=issue.serialize())
+        response.raise_for_status()
