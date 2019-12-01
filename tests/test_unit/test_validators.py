@@ -3,9 +3,8 @@ import re
 from pathlib import Path
 from click import BadParameter
 
-from ghia.validators import validate_reposlug
-from ghia.validators import validate_auth
-from ghia.validators import validate_rules
+from ghia.validators import validate_reposlug, validate_auth, validate_rules,\
+                            validate_signature
 
 
 ctx = None
@@ -20,7 +19,8 @@ def test_reposlug():
     assert validate_reposlug(ctx, param, "owner/repo") == "owner/repo"
 
 
-@pytest.mark.parametrize("reposlug", ("some_text", "owner/repo/something", "invalid/char;acter"))
+@pytest.mark.parametrize("reposlug", ("some_text", "owner/repo/something",
+                                      "invalid/char;acter"))
 def test_invalid_reposlug(reposlug):
     with pytest.raises(BadParameter) as e:
         validate_reposlug(ctx, param, reposlug)
@@ -38,7 +38,8 @@ def test_auth_with_secret():
     assert auth["secret"] == "tajneheslo"
 
 
-@pytest.mark.parametrize("file", ("empty_file.cfg", "auth.githu.cfg", "auth.no_token.cfg"))
+@pytest.mark.parametrize("file", ("empty_file.cfg", "auth.githu.cfg",
+                                  "auth.no_token.cfg"))
 def test_invalid_auth(file):
     with pytest.raises(BadParameter) as e:
         validate_auth(ctx, param, config(file))
@@ -65,8 +66,17 @@ def test_rules_with_fallback():
     assert len(d) == 1
 
 
-@pytest.mark.parametrize("file", ("empty_file.cfg", "rules.fallback_only.cfg", "rules.invalid_regex.cfg", "rules.invalid_fallback.cfg"))
+@pytest.mark.parametrize("file", ("empty_file.cfg", "rules.fallback_only.cfg",
+                                  "rules.invalid_regex.cfg",
+                                  "rules.invalid_fallback.cfg"))
 def test_invalid_rules(file):
     with pytest.raises(BadParameter) as e:
         validate_rules(ctx, param, config(file))
     assert str(e.value) == "incorrect configuration format"
+
+
+def test_signature():
+    assert validate_signature("secret", "qwertyuiop",
+                              "sha1=6793e2cc70039317a633a5ce17038afc4cd5964d")
+    assert not validate_signature("secret", "qwertyuiop",
+                                  "sha1=6793e2cc70039317a633a5ce17038afc4cd5964e")

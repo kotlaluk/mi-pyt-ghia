@@ -1,12 +1,15 @@
 import re
+import hmac
 import configparser
 from click import BadParameter
+
 
 def validate_reposlug(ctx, param, reposlug):
     if re.match("^[\\w-]+\\/[\\w-]+$", reposlug):
         return reposlug
     else:
         raise BadParameter("not in owner/repository format")
+
 
 def validate_auth(ctx, param, config_auth):
     try:
@@ -17,6 +20,7 @@ def validate_auth(ctx, param, config_auth):
         return auth_parser["github"]
     except KeyError:
         raise BadParameter("incorrect configuration format")
+
 
 def validate_rules(ctx, param, config_rules):
     try:
@@ -44,9 +48,17 @@ def validate_rules(ctx, param, config_rules):
             for line in value.split("\n"):
                 rule = line.split(":", 1)
                 if len(rule) == 2:
-                    rules[key][rule[0]].append(re.compile(rule[1], re.IGNORECASE))
+                    rules[key][rule[0]].append(re.compile(rule[1],
+                                               re.IGNORECASE))
 
         return rules
 
     except (KeyError, re.error):
         raise BadParameter("incorrect configuration format")
+
+
+def validate_signature(secret, data, header_signature):
+    digest_mode, signature = header_signature.split("=")
+    mac = hmac.new(bytes(secret, "ascii"), msg=bytes(data, "ascii"),
+                   digestmod=digest_mode)
+    return hmac.compare_digest(signature, mac.hexdigest())
