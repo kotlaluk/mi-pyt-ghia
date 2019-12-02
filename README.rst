@@ -15,7 +15,7 @@ Installation
 
 The project can be installed using pip from TestPyPI::
 
-    pip install -i https://test.pypi.org/simple/ ghia-kotlaluk
+    pip install --extra-index-url https://test.pypi.org/pypi ghia-kotlaluk
 
 Or by cloning GitHub repository::
 
@@ -35,6 +35,8 @@ To view help run::
 
 To run the web application::
 
+.. code-block::
+
     export FLASK_APP=ghia
     export GHIA_CONFIG=config.cfg
     flask run
@@ -50,7 +52,7 @@ The project contains two different sets of tests:
 * integration tests
 
 Unit tests
-^^^^^^^^^^
+~~~~~~~~~~
 
 Unit tests are located in the ``tests`` folder and can be invoked by::
 
@@ -60,6 +62,8 @@ By default, unit tests do not require any environment variables to be set and ca
 
 To re-record the cassettes, set following environment variables::
 
+.. code-block::
+
     export GITHUB_TOKEN=<valid GitHub token>
     export BETAMAX_RECORD=1
 
@@ -68,7 +72,7 @@ and run::
     python setup.py test
 
 Integration tests
-^^^^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~~~~
 
 Integration tests test behavior of the application towards running GitHub API and check the correctness of the module.
 
@@ -79,7 +83,16 @@ To invoke these tests, set following environment variables:
 * ``CTU_USERNAME`` - CTU username
 * ``GHIA_REPO`` - path to the GHIA repository (e.g. https://github.com/kotlaluk/mi-pyt-ghia.git)
 
-And run following pytest command::
+prepare the environment::
+
+.. code-block::
+
+    cd original_tests/environment_setup
+    bash delete.sh
+    bash setup.sh
+    cd -
+
+and run following pytest command::
 
     python -m pytest original_tests/
 

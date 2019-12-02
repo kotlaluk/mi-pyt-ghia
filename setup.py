@@ -5,7 +5,7 @@ with open('README.rst') as f:
 
 setup(
     name='ghia_kotlaluk',
-    version='0.4',
+    version='0.4.1',
     description='GitHub Issue Assigner',
     long_description=long_description,
     long_description_content_type="text/markdown",
