@@ -46,7 +46,8 @@ class MockResponse:
 @pytest.fixture(scope="function")
 def mock_session(monkeypatch, request):
 
-    def mock_patch(*args, **kwargs):
+    def mock_method(*args, **kwargs):
         return MockResponse(request.param)
 
-    monkeypatch.setattr(requests.Session, "patch", mock_patch)
+    monkeypatch.setattr(requests.Session, "patch", mock_method)
+    monkeypatch.setattr(requests.Session, "get", mock_method)
