@@ -13,15 +13,15 @@ Features
 Installation
 ------------
 
-The project can be installed using pip from TestPyPI:
+The project can be installed using pip from TestPyPI::
 
     pip install -i https://test.pypi.org/simple/ ghia-kotlaluk
 
-Or by cloning GitHub repository:
+Or by cloning GitHub repository::
 
     git clone https://github.com/kotlaluk/mi-pyt-ghia
 
-and running:
+and running::
 
     python setup.py install
 
@@ -29,11 +29,11 @@ Usage
 -----
 
 The CLI application can be invoked by running ``ghia``.
-To view help run:
+To view help run::
 
     ghia --help
 
-To run the web application:
+To run the web application::
 
     export FLASK_APP=ghia
     export GHIA_CONFIG=config.cfg
@@ -92,6 +92,7 @@ Author
 ------
 
 Lukáš Kotlaba
+
 lukas.kotlaba@gmail.com
 
 License
