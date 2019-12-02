@@ -25,9 +25,9 @@ def test_user_error():
 
 def test_no_config_error():
     with pytest.raises(GhiaError) as e:
-        with env(GITHUB_USER="user"):
+        with env(GITHUB_USER="user", GHIA_CONFIG=""):
             read_config()
-    assert str(e.value) == "No configuration files found"
+    assert "Invalid format of configuration file" in str(e.value)
 
 
 @pytest.mark.parametrize(("file1", "file2"),

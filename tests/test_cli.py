@@ -13,9 +13,12 @@ from ghia.cli import cli, process_repository
 with betamax.Betamax.configure() as config:
     # Read auth from GHIA_CONFIG
     try:
-        ghia_config = validate_auth(None, None, os.environ["GHIA_CONFIG"])
-        TOKEN = ghia_config["token"]
-        config.default_cassette_options["record_mode"] = "all"
+        BETAMAX_RECORD = os.environ["BETAMAX_RECORD"]
+        if BETAMAX_RECORD == "1":
+            TOKEN = os.environ["GITHUB_TOKEN"]
+            config.default_cassette_options["record_mode"] = "all"
+        else:
+            raise KeyError
     except Exception:
         TOKEN = "false_token"
         # Do not attempt to record sessions with bad fake token
@@ -82,6 +85,14 @@ def test_single_issue_error(prepare_session, capsys):
     assert "   ERROR: Could not update issue ghia-anna/awesome#1" in err
 
 
+def test_reset_rules(prepare_session, capsys):
+    rules = validate_rules(None, None, make_path("rules.reset.cfg"))
+    process_repository("mi-pyt-ghia/kotlaluk", "change", prepare_session,
+                       rules, False)
+    out, err = capsys.readouterr()
+    assert len(err) == 0
+
+
 def test_apply_rules(prepare_session, capsys):
     rules = validate_rules(None, None, make_path("rules.valid.cfg"))
     process_repository("mi-pyt-ghia/kotlaluk", "append", prepare_session,
@@ -107,11 +118,3 @@ def test_apply_rules(prepare_session, capsys):
     assert '-> mi-pyt-ghia/kotlaluk#118 (https://github.com/mi-pyt-ghia/kotlaluk/issues/118)\n' \
            '   = ghia-peter\n' in out
     assert '   FALLBACK:' in out
-
-
-def test_reset_rules(prepare_session, capsys):
-    rules = validate_rules(None, None, make_path("rules.reset.cfg"))
-    process_repository("mi-pyt-ghia/kotlaluk", "change", prepare_session,
-                       rules, False)
-    out, err = capsys.readouterr()
-    assert len(err) == 0

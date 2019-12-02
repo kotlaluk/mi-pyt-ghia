@@ -1,1 +1,4 @@
 include LICENSE
+include pytest.ini
+recursive-include tests *.cfg *.py *.json
+recursive-include original_tests *.sh *.txt *.py *.cfg

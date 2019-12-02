@@ -80,8 +80,10 @@ def apply_strategy(strategy, issue, users):
             if user in old_assignees:
                 symbol = click.style("=", fg="blue", bold=True)
             else:
+                issue.update_assignees = True
                 symbol = click.style("+", fg="green", bold=True)
         else:
+            issue.update_assignees = True
             symbol = click.style("-", fg="red", bold=True)
         echoes.append(f"   {symbol} {user}")
 
@@ -112,10 +114,6 @@ def process_issue(issue, strategy, rules):
 
     # Perform changes
     echoes = apply_strategy(strategy, issue, users)
-    for e in echoes:
-        if "+" in e or "-" in e:
-            issue.update_assignees = True
-            break
 
     # Perform fallback if necessary
     if len(issue.assignees) == 0:

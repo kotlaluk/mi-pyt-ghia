@@ -5,7 +5,7 @@ with open('README.md') as f:
 
 setup(
     name='ghia_kotlaluk',
-    version='0.3.1',
+    version='0.4',
     description='GitHub Issue Assigner',
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -29,6 +29,8 @@ setup(
         'Topic :: Software Development :: Version Control :: Git'
         ],
     install_requires=['Flask', 'click', 'requests'],
+    setup_requires=['pytest-runner'],
+    tests_require=['pytest', 'betamax'],
     entry_points={
         'console_scripts': [
             'ghia = ghia.cli:cli',

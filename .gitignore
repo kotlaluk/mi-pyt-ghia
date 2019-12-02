@@ -4,3 +4,5 @@ credetntials.cfg
 *.egg-info/
 dist/
 build/
+kotlaluk/
+.eggs/

@@ -32,7 +32,8 @@ def process_repository(reposlug, strategy, session, rules, dry_run):
                         # Process the issue
                         echoes = process_issue(issue, strategy, rules)
                         # Update GitHub
-                        if not dry_run:
+                        if not dry_run and (issue.update_assignees
+                                            or issue.update_labels):
                             update_github(issue, session)
                         # Print output
                         for echo in echoes:
