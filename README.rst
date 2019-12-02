@@ -52,18 +52,18 @@ The project contains two different sets of tests:
 Unit tests
 ^^^^^^^^^^
 
-Unit tests are located in the ``tests`` folder and can be invoked by:
+Unit tests are located in the ``tests`` folder and can be invoked by::
 
     python setup.py test
 
 By default, unit tests do not require any environment variables to be set and can be used offline, as they contain pre-recorded betamax cassettes.
 
-To re-record the cassettes, set following environment variables:
+To re-record the cassettes, set following environment variables::
 
     export GITHUB_TOKEN=<valid GitHub token>
     export BETAMAX_RECORD=1
 
-and run:
+and run::
 
     python setup.py test
 
@@ -79,7 +79,7 @@ To invoke these tests, set following environment variables:
 * ``CTU_USERNAME`` - CTU username
 * ``GHIA_REPO`` - path to the GHIA repository (e.g. https://github.com/kotlaluk/mi-pyt-ghia.git)
 
-And run following pytest command:
+And run following pytest command::
 
     python -m pytest original_tests/
 
@@ -91,9 +91,7 @@ Documentation of the project will be available in the next version.
 Author
 ------
 
-Lukáš Kotlaba
-
-lukas.kotlaba@gmail.com
+Lukáš Kotlaba (lukas.kotlaba@gmail.com)
 
 License
 -------
