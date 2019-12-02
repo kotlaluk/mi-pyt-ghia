@@ -1,7 +1,8 @@
 GHIA - GitHub Issue Assigner
 ============================
 
-GHIA is a command-line and web application for automatic assignment of GitHub issues based on their content. It utilizes GitHub API and supports GitHub webhooks.
+GHIA is a command-line and web application for automatic assignment of GitHub issues based on their content.
+It utilizes GitHub API and supports GitHub webhooks.
 
 Features
 --------
@@ -35,8 +36,6 @@ To view help run::
 
 To run the web application::
 
-.. code-block::
-
     export FLASK_APP=ghia
     export GHIA_CONFIG=config.cfg
     flask run
@@ -62,8 +61,6 @@ By default, unit tests do not require any environment variables to be set and ca
 
 To re-record the cassettes, set following environment variables::
 
-.. code-block::
-
     export GITHUB_TOKEN=<valid GitHub token>
     export BETAMAX_RECORD=1
 
@@ -84,8 +81,6 @@ To invoke these tests, set following environment variables:
 * ``GHIA_REPO`` - path to the GHIA repository (e.g. https://github.com/kotlaluk/mi-pyt-ghia.git)
 
 prepare the environment::
-
-.. code-block::
 
     cd original_tests/environment_setup
     bash delete.sh
