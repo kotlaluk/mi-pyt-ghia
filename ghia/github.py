@@ -78,7 +78,7 @@ def apply_strategy(strategy, issue, users):
     for user in sorted(all_assignees, key=lambda s: s.casefold()):
         if user in new_assignees:
             if user in old_assignees:
-                symbol = click.style("=", fg="green", bold=True)
+                symbol = click.style("=", fg="blue", bold=True)
             else:
                 symbol = click.style("+", fg="green", bold=True)
         else:
