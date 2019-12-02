@@ -1,4 +1,4 @@
 include LICENSE
-include pytest.ini
+include conftest.py
 recursive-include tests *.cfg *.py *.json
 recursive-include original_tests *.sh *.txt *.py *.cfg
