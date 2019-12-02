@@ -108,11 +108,14 @@ def process_issue(issue, strategy, rules):
                         if login != "fallback"}
     for login, rule in without_fallback.items():
         if match_rule(issue, rule):
-            issue.update_assignees = True
             users.append(login)
 
     # Perform changes
     echoes = apply_strategy(strategy, issue, users)
+    for e in echoes:
+        if "+" in e or "-" in e:
+            issue.update_assignees = True
+            break
 
     # Perform fallback if necessary
     if len(issue.assignees) == 0:
