@@ -57,11 +57,11 @@ Append strategy adds new assignees to the already existing assignees.
 .. testcode::
 
    process_issue(issue, "append", rules)
-   print("Assignees:", issue.assignees)
+   print("Assignees:", sorted(issue.assignees))
 
 .. testoutput::
 
-    Assignees: {'Codertocat', 'ghia-jane'}
+    Assignees: ['Codertocat', 'ghia-jane']
 
 The user *ghia-jane* was added to the issue assignees.
 
@@ -78,11 +78,11 @@ Set strategy adds assignees only in case the issue was not assigned to anyone.
 .. testcode::
 
    process_issue(issue, "set", rules)
-   print("Assignees:", issue.assignees)
+   print("Assignees:", sorted(issue.assignees))
 
 .. testoutput::
 
-    Assignees: {'Codertocat'}
+    Assignees: ['Codertocat']
 
 The user *ghia-jane* was not added to the issue assignees, as the issue was
 previously assigned to *Codertocat*.
@@ -96,10 +96,10 @@ users matched by the rules.
 .. testcode::
 
    process_issue(issue, "change", rules)
-   print("Assignees:", issue.assignees)
+   print("Assignees:", sorted(issue.assignees))
 
 .. testoutput::
 
-    Assignees: {'ghia-jane'}
+    Assignees: ['ghia-jane']
 
 The user *ghia-jane* is now the only assignee of the issue.
