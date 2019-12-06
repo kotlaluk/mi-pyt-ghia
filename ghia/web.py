@@ -1,3 +1,10 @@
+"""
+.. module:: web
+
+Module web contains flask web application that shows the current configuration
+in a static web page, and listens to GitHub webhooks *ping* and *issues*.
+"""
+
 import os
 import flask
 import requests
@@ -12,6 +19,24 @@ app = flask.Flask(__name__)
 
 
 def read_config():
+    """Read the configuration provided by environment variables.
+
+    Prepares a dictionary containing configuration entries. Reads value from
+    GITHUB_USER environment variable and attempts to parse configuration files
+    provided in GHIA_CONFIG environment variables.
+
+    The files may contain authentication or rules configuration. The resulting
+    dictionary is nested, containing fields "auth" and "rules" in the first
+    level.
+
+    Raises:
+        GhiaError: if an error occurs during loading/parsing of the
+                   configuration files
+
+    Returns:
+        dict: dictionary containing the loaded configuration entries, with "rules" and "auth" keys
+    """
+
     config = dict()
     config["rules"] = dict()
     config["auth"] = dict()
@@ -50,6 +75,16 @@ def read_config():
 
 
 def process_get(config):
+    """Process GET request towards the web application.
+
+    Args:
+        config (dict): prepared config dictionary by :py:func:`read_config`
+
+    Returns:
+        a static flask webpage containing information about the current
+        configuration
+    """
+
     without_fallback = {login: config["rules"][login]
                         for login in config["rules"]
                         if login != "fallback"}
@@ -62,11 +97,44 @@ def process_get(config):
 
 
 def process_post_ping(request_payload):
+    """Process received ping event.
+
+    Args:
+        request_payload ([type]): dictionary representing JSON format of the
+                                  received payload from the ping event
+
+    Returns:
+        str: message "Ping successful"
+    """
+
     app.logger.info("Received PING event")
     return "Ping successful"
 
 
 def process_post_issues(request_payload, config, session):
+    """Process received issues event.
+
+    Validates the action in the received issues event. If the action is one of
+    Calls "opened", "edited", "transferred", "reopened", "assigned",
+    "unassigned", "labeled", or "unlabeled", extracts information about the
+    issue from the received payload and creates an `py:class:`Issue` object.
+
+    After the `py:class:`Issue` object is created, calls :py:func:`process_issue`
+    to perform processing of the issue according to currently valid config
+    and calls :py:func:`update_github` to update the issue on GitHub.
+
+    Args:
+        request_payload ([type]): dictionary representing JSON format of the
+                                  received payload from the issues event
+        config (dict): prepared config dictionary by :py:func:`read_config`
+        session (:py:class:`requests.Session`): an initialized and prepared
+                                                session object to use for
+                                                updating the issue on GitHub
+
+    Returns:
+        str: message informing that the issue was updated
+    """
+
     app.logger.info("Received ISSUES event")
     if request_payload["action"] in ("opened", "edited",
                                      "transferred", "reopened",
@@ -85,6 +153,23 @@ def process_post_issues(request_payload, config, session):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+    """Route function for the flask web application.
+
+    The flask web application listens on "/" path for incoming GET and POST
+    requests. If it receives a GET requests, :py:func:`process_get` is called
+    to show a static webpage containing information about current configuration.
+
+    If a POST request is received, firstly its validation is performed (in case
+    it contains "X-Hub-Signature" header). Subsequently, the reques action is
+    read from "X-GitHub-Event" header. If the action is *ping* or *issues*
+    event, the corresponding function is called to process the action.
+
+    The application may respond with following HTTP error codes:
+        - 501 if an unsupported action is received
+        - 401 if the validation of the signature fails
+        - 400 if the incoming request has an invalid format
+    """
+
     config = read_config()
 
     if flask.request.method == "GET":
