@@ -1,8 +1,9 @@
 GHIA - GitHub Issue Assigner
 ============================
 
-GHIA is a command-line and web application for automatic assignment of GitHub issues based on their content.
-It utilizes GitHub API and supports GitHub webhooks.
+GHIA is a command-line and web application for automatic assignment of GitHub
+issues based on their content. It utilizes GitHub API and supports GitHub
+webhooks.
 
 Features
 --------
@@ -47,8 +48,8 @@ Testing
 
 The project contains two different sets of tests:
 
-* unit tests
-* integration tests
+- unit tests
+- integration tests
 
 Unit tests
 ~~~~~~~~~~
@@ -57,7 +58,8 @@ Unit tests are located in the ``tests`` folder and can be invoked by::
 
     python setup.py test
 
-By default, unit tests do not require any environment variables to be set and can be used offline, as they contain pre-recorded betamax cassettes.
+By default, unit tests do not require any environment variables to be set and
+can be used offline, as they contain pre-recorded betamax cassettes.
 
 To re-record the cassettes, set following environment variables::
 
@@ -71,14 +73,16 @@ and run::
 Integration tests
 ~~~~~~~~~~~~~~~~~
 
-Integration tests test behavior of the application towards running GitHub API and check the correctness of the module.
+Integration tests test behavior of the application towards running GitHub API
+and check the correctness of the module.
 
 To invoke these tests, set following environment variables:
 
-* ``GITHUB_USER`` - GitHub username
-* ``GITHUB_TOKEN`` - GitHub access token
-* ``CTU_USERNAME`` - CTU username
-* ``GHIA_REPO`` - path to the GHIA repository (e.g. https://github.com/kotlaluk/mi-pyt-ghia.git)
+- ``GITHUB_USER`` - GitHub username
+- ``GITHUB_TOKEN`` - GitHub access token
+- ``CTU_USERNAME`` - CTU username
+- ``GHIA_REPO`` - path to the GHIA repository
+  (e.g. https://github.com/kotlaluk/mi-pyt-ghia.git)
 
 prepare the environment::
 
@@ -94,7 +98,15 @@ and run following pytest command::
 Documentation
 -------------
 
-Documentation of the project will be available in the next version.
+Documentation of the project is available at
+`Read the Docs <https://readthedocs.org/projects/mi-pyt-ghia/>`_.
+
+To build the documentation manually::
+
+   cd docs
+   make html
+
+and open the file ``docs/_build/html/index.html`` in a web browser.
 
 Author
 ------
