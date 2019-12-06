@@ -59,3 +59,6 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 add_module_names = False
+autoclass_content = "both"
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
+                       'requests': ('https://requests.readthedocs.io/en/master/', None)}
