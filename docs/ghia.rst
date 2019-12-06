@@ -9,6 +9,7 @@ ghia.cli
 .. automodule:: ghia.cli
    :members:
    :undoc-members:
+.. autofunction:: ghia.cli.cli(reposlug, strategy, config_auth, config_rules, dry_run)
 
 ghia.web
 --------
