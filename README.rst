@@ -99,7 +99,7 @@ Documentation
 -------------
 
 Documentation of the project is available at
-`Read the Docs <https://readthedocs.org/projects/mi-pyt-ghia/>`_.
+`Read the Docs <https://ghia-kotlaluk.readthedocs.io>`_.
 
 To build the documentation manually::
 
