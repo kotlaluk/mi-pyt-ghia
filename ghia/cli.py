@@ -84,39 +84,45 @@ def process_repository(reposlug, strategy, session, rules, dry_run):
 
 
 @click.command()
-@click.argument("reposlug", metavar="REPOSLUG", required=True,
+@click.argument("reposlugs", metavar="REPOSLUGS", required=True, nargs=-1,
                 callback=validate_reposlug)
 @click.option("-s", "--strategy", help="How to handle assignment collisions.",
-              type=click.Choice(["append", "set", "change"],
-              case_sensitive=False), default="append", show_default=True)
+              type=click.Choice(["append", "set", "change"], case_sensitive=False),
+              default="append", show_default=True)
 @click.option("-d", "--dry-run", help="Run without making any changes.",
               is_flag=True)
-@click.option("-a", "--config-auth",
-              help="File with authorization configuration.", metavar="FILENAME",
-              required=True, type=click.Path(exists=True),
-              callback=validate_auth)
-@click.option("-r", "--config-rules",
+@click.option("-a", "--config-auth", metavar="FILENAME", callback=validate_auth,
+              help="File with authorization configuration.", required=True,
+              type=click.Path(exists=True))
+@click.option("-r", "--config-rules", callback=validate_rules,
               help="File with assignment rules configuration.",
-              metavar="FILENAME", required=True, type=click.Path(exists=True),
-              callback=validate_rules)
-def cli(reposlug, strategy, config_auth, config_rules, dry_run):
+              metavar="FILENAME", required=True, type=click.Path(exists=True))
+@click.option("-x", "--async", "asynchronous", is_flag=True,
+              help="Process multiple repositories asynchronously.")
+def cli(reposlugs, strategy, config_auth, config_rules, dry_run, asynchronous):
     """CLI interface for automatic assigning of GitHub issues.
 
     This function is the entrypoint when *ghia* is executed from command line.
 
     Args:
-        reposlug (str): GitHub reposlug in owner/repository format
+        reposlugs (tuple): one or more GitHub reposlugs in owner/repository format
         strategy (str): strategy to apply: append, set, or change
         config_auth (file): a file with authorization configuration
         config_rules (file): a file with assignment rules configuration
         dry_run (bool): allows to run without making any changes (only prints
                         output)
+        asynchronous (bool): if set, the repositories are processed asynchronously
     """
 
     try:
         token = config_auth["token"]
         session = prepare_session(token)
-        process_repository(reposlug, strategy, session, config_rules, dry_run)
+        if asynchronous:
+            pass
+        else:
+            for reposlug in reposlugs:
+                process_repository(reposlug, strategy, session, config_rules,
+                                   dry_run)
     except GhiaError as e:
         error = click.style("ERROR", fg="red", bold=True)
         click.echo(f"{error}: {e}", err=True)

@@ -41,7 +41,7 @@ def test_no_reposlug():
     result = runner.invoke(cli, ['-r', f'{make_path("rules.empty.cfg")}', '-a',
                            f'{make_path("auth.basic.cfg")}'])
     assert result.exit_code != 0
-    assert 'Error: Missing argument "REPOSLUG".' in result.output
+    assert 'Error: Missing argument "REPOSLUGS".' in result.output
 
 
 @pytest.mark.parametrize("mock_session", [500], indirect=["mock_session"])

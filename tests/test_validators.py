@@ -13,13 +13,16 @@ ctx = None
 param = None
 
 
-def test_reposlug():
-    assert validate_reposlug(ctx, param, "owner/repo") == "owner/repo"
+@pytest.mark.parametrize("reposlug", (tuple(["owner/repo"]),
+                                      tuple(["owner/repo1", "owner/repo2"])))
+def test_reposlugs(reposlug):
+    assert validate_reposlug(ctx, param, reposlug) == reposlug
 
 
-@pytest.mark.parametrize("reposlug", ("some_text", "owner/repo/something",
-                                      "invalid/char;acter"))
-def test_invalid_reposlug(reposlug):
+@pytest.mark.parametrize("reposlug", (tuple(["some_text"]),
+                                      tuple(["owner/repo/something"]),
+                                      tuple(["invalid/char;acter"])))
+def test_invalid_reposlugs(reposlug):
     with pytest.raises(BadParameter) as e:
         validate_reposlug(ctx, param, reposlug)
     assert str(e.value) == "not in owner/repository format"

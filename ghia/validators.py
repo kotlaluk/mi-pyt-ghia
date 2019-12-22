@@ -12,28 +12,29 @@ import configparser
 from click import BadParameter
 
 
-def validate_reposlug(ctx, param, reposlug):
-    """Callback to validate the provided reposlug.
+def validate_reposlug(ctx, param, reposlugs):
+    """Callback to validate the provided reposlugs.
 
-    The function checks whether the provided value for *reposlug* is in owner/
+    The function checks whether the provided *reposlugs* are in owner/
     repository format.
 
     Args:
         ctx: context object obtained from click
         param: parameter object obtained from click
-        reposlug (str): GitHub reposlug in owner/repository format
+        reposlugs (tuple): one or more GitHub reposlugs in owner/repository format
 
     Raises:
-        BadParameter: if the provided *reposlug* is not in owner/repository format
+        BadParameter: if any of the provided *reposlugs* is not in
+                      owner/repository format
 
     Returns:
-        str: the provided *reposlug*, if valid
+        tuple: the provided *reposlugs*, if valid
     """
 
-    if re.match("^[\\w-]+\\/[\\w-]+$", reposlug):
-        return reposlug
-    else:
-        raise BadParameter("not in owner/repository format")
+    for reposlug in reposlugs:
+        if not re.match("^[\\w-]+\\/[\\w-]+$", reposlug):
+            raise BadParameter("not in owner/repository format")
+    return reposlugs
 
 
 def validate_auth(ctx, param, config_auth):
