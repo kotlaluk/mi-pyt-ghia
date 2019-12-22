@@ -8,7 +8,7 @@ setup(
     version='0.5',
     description='GitHub Issue Assigner',
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
     author='Lukáš Kotlaba',
     author_email='lukas.kotlaba@gmail.com',
     keywords='ghia,github,issue,assigner',
@@ -28,7 +28,7 @@ setup(
         'Topic :: Software Development :: Version Control',
         'Topic :: Software Development :: Version Control :: Git'
         ],
-    install_requires=['Flask', 'click', 'requests'],
+    install_requires=['aiohttp', 'Flask', 'click', 'requests'],
     setup_requires=['pytest-runner'],
     tests_require=['pytest', 'betamax'],
     entry_points={

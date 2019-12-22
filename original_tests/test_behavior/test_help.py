@@ -10,7 +10,7 @@ stdout_e = hlp_e.stdout
 
 def test_usage():
     # tip: use cli(prog_name='ghia') when calling the click.command function
-    assert stdout_m.startswith('Usage: ghia [OPTIONS] REPOSLUG')
+    assert stdout_m.startswith('Usage: ghia [OPTIONS] REPOSLUGS')
 
 
 def test_description():

@@ -5,6 +5,8 @@ Module cli defines functionality for the CLI part of the ghia package. The CLI
 interface is able to process issues for a GitHub repository in batches.
 """
 
+import aiohttp
+import asyncio
 import click
 import requests
 import sys
@@ -15,6 +17,82 @@ from .github import GhiaError, create_issue, process_issue, prepare_session,\
 
 
 GITHUB_URL = "https://api.github.com/repos/"
+
+
+async def async_fetch(session, url, links_only=False):
+    if links_only:
+        async with session.head(url) as response:
+            response.raise_for_status()
+            return response.links
+    else:
+        async with session.get(url) as response:
+            response.raise_for_status()
+            return await response.json()
+
+
+async def async_process_issue(session, issue, reposlug, strategy, rules,
+                              dry_run, token):
+    try:
+        echo_name = click.style(f"{reposlug}#{issue.number}", bold=True)
+        click.echo(f"-> {echo_name} ({issue.html_url})")
+        try:
+            # Process the issue
+            echoes = process_issue(issue, strategy, rules)
+            # Update GitHub
+            if not dry_run and (issue.update_assignees
+                                or issue.update_labels):
+                update_github(issue, session)
+            # Print output
+            for echo in echoes:
+                click.echo(echo)
+        except requests.HTTPError:
+            raise GhiaError(f"Could not update issue "
+                            f"{reposlug}#{issue.number}")
+    except GhiaError as e:
+        error = click.style("ERROR", fg="red", bold=True)
+        click.echo(f"   {error}: {e}", err=True)
+
+
+async def async_process_issue_page(session, async_session, page_url, reposlug,
+                                   strategy, rules, dry_run, token):
+    page = await async_fetch(async_session, page_url)
+    issues = list()
+    for item in page:
+        issues.append(create_issue(item))
+    await asyncio.gather(*[async_process_issue(session, issue, reposlug,
+                           strategy, rules, dry_run, token)
+                           for issue in issues])
+
+
+async def async_process_repository(reposlug, strategy, session, token, rules,
+                                   dry_run):
+    issues_url = f"{GITHUB_URL}{reposlug}/issues"
+
+    headers = dict()
+    headers["Accept"] = "application/vnd.github.v3+json"
+    headers["Authorization"] = f"token {token}"
+    async_session = aiohttp.ClientSession(headers=headers)
+
+    async with async_session:
+        try:
+            links = await async_fetch(async_session, issues_url, links_only=True)
+            last_url = str(links["last"]["url"])
+            issue_page_urls = [last_url[:-1] + str(x)\
+                               for x in range(1, int(last_url[-1]) + 1)]
+            await asyncio.gather(*[async_process_issue_page(session, async_session,
+                                   url, reposlug, strategy, rules, dry_run, token)
+                                   for url in issue_page_urls])
+
+        except aiohttp.ClientResponseError:
+            error = click.style("ERROR", fg="red", bold=True)
+            click.echo(f"{error}: Could not list issues for repository {reposlug}",
+                    err=True)
+
+
+async def async_process_repositories(reposlugs, strategy, session, token, rules,
+                                     dry_run):
+    await asyncio.gather(*[async_process_repository(reposlug, strategy, session,
+                           token, rules, dry_run) for reposlug in reposlugs])
 
 
 def process_repository(reposlug, strategy, session, rules, dry_run):
@@ -100,25 +178,14 @@ def process_repository(reposlug, strategy, session, rules, dry_run):
 @click.option("-x", "--async", "asynchronous", is_flag=True,
               help="Process multiple repositories asynchronously.")
 def cli(reposlugs, strategy, config_auth, config_rules, dry_run, asynchronous):
-    """CLI interface for automatic assigning of GitHub issues.
-
-    This function is the entrypoint when *ghia* is executed from command line.
-
-    Args:
-        reposlugs (tuple): one or more GitHub reposlugs in owner/repository format
-        strategy (str): strategy to apply: append, set, or change
-        config_auth (file): a file with authorization configuration
-        config_rules (file): a file with assignment rules configuration
-        dry_run (bool): allows to run without making any changes (only prints
-                        output)
-        asynchronous (bool): if set, the repositories are processed asynchronously
-    """
+    """CLI tool for automatic issue assigning of GitHub issues"""
 
     try:
         token = config_auth["token"]
         session = prepare_session(token)
         if asynchronous:
-            pass
+            asyncio.run(async_process_repositories(reposlugs, strategy, session,
+                                                   token, config_rules, dry_run))
         else:
             for reposlug in reposlugs:
                 process_repository(reposlug, strategy, session, config_rules,
