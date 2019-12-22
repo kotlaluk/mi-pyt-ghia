@@ -3,8 +3,8 @@ Usage
 
 GHIA can be used as **CLI** or **WEB** application.
 
-:ref:`cli-label` allows to process GitHub issues for a specified repository in
-batches. User can specify a file containing assignment rules (regular
+:ref:`cli-label` allows to process GitHub issues for the specified repositories
+in batches. User can specify a file containing assignment rules (regular
 expressions) that would be matched against issue title, body, label, or any of
 these elements. If an issue from the repository matches the rule, the specified
 user is assigned to the issue.

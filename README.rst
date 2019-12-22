@@ -9,6 +9,7 @@ Features
 --------
 
 - Process GitHub issues in batches via CLI interface
+- Process multiple GitHub repositories asynchronously
 - Recieve GitHub webhooks via web application
 - Define rules based on issue title, content, or label
 

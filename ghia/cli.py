@@ -20,6 +20,19 @@ GITHUB_URL = "https://api.github.com/repos/"
 
 
 async def async_fetch(session, url, links_only=False):
+    """Asynchronously fetch a url.
+
+    Args:
+        session (:py:class:`aiohttp.ClientSession`): an initialized and prepared
+                                                     asynchronous session
+        url (str): URL to fetch
+        links_only (bool, optional): If True, uses HEAD request to fech only
+                                     links from headers. Defaults to False.
+
+    Returns:
+        dict: JSON response or dictionary with links
+    """
+
     if links_only:
         async with session.head(url) as response:
             response.raise_for_status()
@@ -32,6 +45,23 @@ async def async_fetch(session, url, links_only=False):
 
 async def async_process_issue(session, issue, reposlug, strategy, rules,
                               dry_run, token):
+    """Process an issue asynchronously.
+
+    Args:
+        session (:py:class:`requests.Session`): an initialized and prepared
+                                                session object to use
+        issue (Issue): Issue object to process
+        reposlug (str): GitHub reposlug in owner/repository format
+        strategy (str): strategy to apply: append, set, or change
+        rules (dict): rules to match against the repository issues
+        dry_run (bool): allows to run without making any changes (only prints
+                        output)
+        token (str): a valid GitHub token
+
+    Raises:
+        GhiaError: [description]
+    """
+
     try:
         echo_name = click.style(f"{reposlug}#{issue.number}", bold=True)
         click.echo(f"-> {echo_name} ({issue.html_url})")
@@ -55,6 +85,22 @@ async def async_process_issue(session, issue, reposlug, strategy, rules,
 
 async def async_process_issue_page(session, async_session, page_url, reposlug,
                                    strategy, rules, dry_run, token):
+    """Asynchronously process a page of issues.
+
+    Args:
+        session (:py:class:`requests.Session`): an initialized and prepared
+                                                session object to use
+        async_session (:py:class:`aiohttp.ClientSession`): an initialized and prepared
+                                                     asynchronous session
+        page_url (str): URL to the page containing issues
+        reposlug (str): GitHub reposlug in owner/repository format
+        strategy (str): strategy to apply: append, set, or change
+        rules (dict): rules to match against the repository issues
+        dry_run (bool): allows to run without making any changes (only prints
+                        output)
+        token (str): a valid GitHub token
+    """
+
     page = await async_fetch(async_session, page_url)
     issues = list()
     for item in page:
@@ -66,6 +112,19 @@ async def async_process_issue_page(session, async_session, page_url, reposlug,
 
 async def async_process_repository(reposlug, strategy, session, token, rules,
                                    dry_run):
+    """Asynchronously process a repository.
+
+    Args:
+        reposlug (str): GitHub reposlug in owner/repository format
+        strategy (str): strategy to apply: append, set, or change
+        session (:py:class:`requests.Session`): an initialized and prepared
+                                                session object to use
+        token (str): a valid GitHub token
+        rules (dict): rules to match against the repository issues
+        dry_run (bool): allows to run without making any changes (only prints
+                        output)
+    """
+
     issues_url = f"{GITHUB_URL}{reposlug}/issues"
 
     headers = dict()
@@ -91,6 +150,26 @@ async def async_process_repository(reposlug, strategy, session, token, rules,
 
 async def async_process_repositories(reposlugs, strategy, session, token, rules,
                                      dry_run):
+    """Process the repositories asynchronously.
+
+    This function is called from CLI if the -x/--async option is specified,
+    after all validations are made, to process the specified repository.
+    It performs all the operations: reads the issues from the repository,
+    matches the issues towards the provided rules, applies the chosen strategy,
+    and performs necessary updates of issues in GitHub.
+    It uses functionality of the :py:mod:`ghia.github` module.
+
+    Args:
+        reposlugs (list): one or more GitHub reposlugs in owner/repository format
+        strategy (str): strategy to apply: append, set, or change
+        session (:py:class:`requests.Session`): an initialized and prepared
+                                                session object to use
+        token (str): a valid GitHub token
+        rules (dict): rules to match against the repository issues
+        dry_run (bool): allows to run without making any changes (only prints
+                        output)
+    """
+
     await asyncio.gather(*[async_process_repository(reposlug, strategy, session,
                            token, rules, dry_run) for reposlug in reposlugs])
 
@@ -176,7 +255,7 @@ def process_repository(reposlug, strategy, session, rules, dry_run):
               help="File with assignment rules configuration.",
               metavar="FILENAME", required=True, type=click.Path(exists=True))
 @click.option("-x", "--async", "asynchronous", is_flag=True,
-              help="Process multiple repositories asynchronously.")
+              help="Process issues and repositories asynchronously.")
 def cli(reposlugs, strategy, config_auth, config_rules, dry_run, asynchronous):
     """CLI tool for automatic issue assigning of GitHub issues"""
 

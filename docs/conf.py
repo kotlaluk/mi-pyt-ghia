@@ -22,7 +22,7 @@ copyright = '2019, Lukáš Kotlaba'
 author = 'Lukáš Kotlaba'
 
 # The full version, including alpha/beta/rc tags
-release = '0.5'
+release = '0.6'
 
 
 # -- General configuration ---------------------------------------------------
@@ -61,4 +61,5 @@ html_static_path = ['_static']
 add_module_names = False
 autoclass_content = "both"
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
-                       'requests': ('https://requests.readthedocs.io/en/master/', None)}
+                       'requests': ('https://requests.readthedocs.io/en/master/', None),
+                       'aiohttp': ('https://docs.aiohttp.org/en/stable/', None)}

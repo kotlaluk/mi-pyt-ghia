@@ -3,7 +3,7 @@
 CLI Application
 ===============
 
-GHIA in CLI mode processes all issues for the specified repository. After
+GHIA in CLI mode processes all issues for the specified repositories. After
 :ref:`installation<installation-label>` of the GHIA package, the interface can
 be invoked by calling ``ghia``.
 
@@ -11,7 +11,7 @@ GHIA CLI offers following options (can be viewed by calling ``ghia --help``:
 
 .. code-block:: console
 
-    Usage: ghia [OPTIONS] REPOSLUG
+    Usage: ghia [OPTIONS] REPOSLUGS
 
       CLI tool for automatic issue assigning of GitHub issues
 
@@ -24,10 +24,12 @@ GHIA CLI offers following options (can be viewed by calling ``ghia --help``:
                                       [required]
       -r, --config-rules FILENAME     File with assignment rules configuration.
                                       [required]
+      -x, --async                     Process issues and repositories
+                                      asynchronously.
       --help                          Show this message and exit.
 
-**REPOSLUG** is the reposlug of the GitHub repository that should be processed,
-in user/repository format, e.g. "kotlaluk/mi-pyt-ghia".
+**REPOSLUGS** is one or more reposlugs of the GitHub repositories that should be
+processed, in user/repository format, e.g. "kotlaluk/mi-pyt-ghia".
 
 **strategy** is the strategy which is applied while changing issue assignees.
 This is important especially if the issue had some assignees previously:
@@ -49,3 +51,6 @@ file.
 in the GitHub repository. However, the application will print the output
 normally, as it would be making changes. This can be useful, for example, for
 testing the assignment rules.
+
+**async** enables asynchronous processing of issues and repositories (if more
+than one reposlug was provided).
